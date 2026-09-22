@@ -103,14 +103,16 @@ Habilita el bucle de construcción, tarea por tarea.
     `Protocol` `Clock` según `mypy --strict`, y un `RelojAvanzable` puede correr el tiempo sin
     tocar estado global.
 
-- [ ] **T5 — Resultado y jerarquía de errores de negocio**
+- [x] **T5 — Resultado y jerarquía de errores de negocio**
   - **RF:** transversal (plan §1.2)
-  - **Archivos:** `src/shared/result.py`, `src/shared/errors.py`
+  - **Archivos:** `src/shared/result.py`, `src/shared/errors.py`, `tests/unit/shared/test_result.py`,
+    `tests/unit/shared/test_errors.py`
   - **Hecho cuando:** `make lint` y `make types` en verde con mypy estricto sobre `src/shared`:
     `Resultado[T]` es genérico y `ErrorDeNegocio` expone `codigo` y `mensaje`.
-    `[NECESITA ACLARACIÓN]` — el plan no declara módulo de test para estos archivos (ver
-    "Aclaraciones pendientes" #1); la verificación por test llega recién con los servicios que
-    los devuelven (T20 en adelante).
+    **Resuelto 2026-09-22** (ver "Aclaraciones pendientes" #1): sí se agregaron
+    `tests/unit/shared/test_result.py` y `tests/unit/shared/test_errors.py` como humo mínimo;
+    la verificación de comportamiento real sigue llegando con los servicios que los devuelven
+    (T20 en adelante).
 
 - [ ] **T6 — Generación de identificadores y claves de idempotencia**
   - **RF:** RF-16
@@ -846,6 +848,10 @@ el arranque: todas caen en tareas tardías o de bajo riesgo.
    `shared/errors.py`, `shared/ids.py` ni `shared/mensajes.py`. T5, T6 y T7 cierran contra G0/G1
    y quedan verificadas de verdad recién en las tareas que las consumen. *Pregunta:* ¿se agrega
    un módulo de test para estas primitivas, o se acepta la verificación indirecta?
+   **Resuelto 2026-09-22 para T5:** sí, se agregaron `tests/unit/shared/test_result.py` y
+   `tests/unit/shared/test_errors.py` como humo mínimo (ver T5). La verificación de
+   comportamiento real sigue llegando en T20 en adelante, como decía el texto original. T6 y
+   T7 quedan sin resolver por esta nota.
 
 2. **`src/accounts/admin.py` sin RF ni test.** §1.4 y §6 Área C lo declaran, pero ningún RF ni
    ninguna fila de §7 lo cubre. T23 cierra contra `make verify` y `manage.py check`.

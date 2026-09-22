@@ -63,6 +63,15 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S", "N802"]
 "*/settings/*" = ["F403", "F405"]
+# ErrorDeNegocio (y sus subclases en domain/errores.py) siguen la convención de nombres
+# en español del dominio (plan §1.2/§1.3), no la convención "...Error" de N818.
+"src/shared/errors.py" = ["N818"]
+# El test de inmutabilidad de Ok usa setattr(..., "valor", ...) a propósito: una
+# asignación literal (resultado.valor = "otro") dispara un error estático de mypy sobre
+# un dataclass frozen, que exigiría un `type: ignore` prohibido por la constitución del
+# proyecto. setattr con el nombre como string evita ese chequeo estático y deja que el
+# test verifique en runtime que dataclasses.FrozenInstanceError se levanta de verdad.
+"tests/unit/shared/test_result.py" = ["B010"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "decimal.Decimal".msg = "Prohibido para dinero. El guarani es entero: usar int y shared.money."

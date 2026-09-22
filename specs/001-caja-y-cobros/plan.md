@@ -77,9 +77,18 @@ permite que el transporte del correo sea intercambiable sin tocar caja (restricc
 | `shared/money.py` | `redondear_gs(monto:int, multiplo:int) -> int` (único punto de redondeo del sistema, ADR 0002), `cuadrar_lineas(total_gs, lineas) -> list[int]`, `formatear_gs`. | RF-7, RF-11, RF-15 |
 | `shared/clock.py` | `Clock` (Protocol con `now() -> datetime`), `RelojSistema`, `RelojFijo`. El tiempo entra por parámetro, nunca se lee `timezone.now()` dentro de la lógica. | RF-1, RF-33, RF-38 |
 | `shared/ids.py` | `GeneradorUuid` (Protocol), `UuidAleatorio`, `UuidSecuencial` (tests), `nueva_clave_idempotencia()`. | RF-16 |
-| `shared/result.py` | `Resultado[T]` / `Error` — los servicios devuelven resultados, no lanzan excepciones para flujo de negocio esperado. | transversal |
-| `shared/errors.py` | Jerarquía base `ErrorDeNegocio` con `codigo` y `mensaje` en español. | transversal |
+| `shared/result.py` | `Resultado[T]` / `Error` — mecanismo preferido para que los servicios devuelvan flujo de negocio esperado sin lanzar excepciones. No es el único mecanismo: ver nota 2026-09-22. | transversal |
+| `shared/errors.py` | Jerarquía base `ErrorDeNegocio` (hereda de `Exception`, ver nota 2026-09-22) con `codigo` y `mensaje` en español. | transversal |
 | `shared/mensajes.py` | Cadenas de cara al usuario, español de Paraguay, un solo lugar. | RF-2, RF-5, RF-9, RF-10, RF-21 |
+
+> **Nota (2026-09-22):** code review de T5 encontró que esta fila contradecía el
+> pseudocódigo de §3.3/§3.4, que usa `lanzar ExcesoNoEfectivo(...)`, `lanzar SinSesion`,
+> `lanzar PinBloqueado`, etc. Se corrige: `Resultado[T]` sigue siendo el mecanismo
+> preferido para el flujo de negocio esperado en general, pero no es exclusivo.
+> `ErrorDeNegocio` hereda de `Exception` y se puede lanzar con `raise`/capturar con
+> `except` donde el pseudocódigo de otras secciones del plan ya lo especifica así. Cada
+> servicio/RF elige el mecanismo (`Resultado[T]` o `raise ErrorDeNegocio`) que le quede
+> mejor; no son mutuamente excluyentes.
 
 ### 1.3 `src/domain/` — reglas puras, importable sin Django
 
