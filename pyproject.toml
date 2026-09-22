@@ -71,7 +71,7 @@ ignore = [
 
 [tool.mypy]
 python_version = "3.12"
-plugins = ["mypy_django_plugin.main"]
+plugins = ["mypy_django_plugin.main", "pydantic.mypy"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = true
