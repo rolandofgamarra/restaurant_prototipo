@@ -5,8 +5,19 @@
 §6 del plan) se aceptan tal como quedaron resueltas — no bloquean la construcción.
 Habilita el bucle de construcción, tarea por tarea.
 **Fecha:** 2026-09-22
+**Total:** 84 tareas, T1–T84.
 **Entradas:** `docs/constitution.md`, `specs/001-caja-y-cobros/spec.md` (aprobada, RF-1..RF-39),
 `specs/001-caja-y-cobros/plan.md` (aprobado, S1/S2/S3 confirmados), `AGENTS.md` §4.
+
+> **Nota de revisión (2026-09-22, posterior a la aprobación).** Al arrancar el bucle de
+> construcción se descubrió un bloqueo de entorno: el proyecto no tenía esqueleto Django
+> (`manage.py`, `src/config/settings/`, `src/__init__.py`) y `pyproject.toml` fija
+> `DJANGO_SETTINGS_MODULE = "src.config.settings.test"` para pytest-django, así que
+> **cualquier** test —incluso uno de dominio puro sin ORM— rompía en la fase de colección
+> con `ModuleNotFoundError: No module named 'src'`. Rolando aprobó insertar una tarea nueva
+> de bootstrap como **T1** y correr toda la numeración anterior en uno (el T1 original pasó
+> a T2, …, el T83 original a T84). Ninguna tarea cambió de sustancia: solo cambió su número
+> y las referencias cruzadas entre tareas. El total pasa de 83 a 84.
 
 ---
 
@@ -25,15 +36,49 @@ Habilita el bucle de construcción, tarea por tarea.
   tareas de servicio que los usan. Razón: G4 (`make migrations-check`) bloquea por migración
   faltante, y ninguna tarea cierra con una compuerta en rojo (constitución §6). El plan declara
   una sola migración por app, salvo `audit/migrations/0002_revocar_permisos.py`, que sí tiene
-  tarea propia (T26).
-- El orden es de dependencia real: primitivas sin dependencias → dominio puro → modelos con
-  migración → servicios → vistas y plantillas → E2E y documentación.
+  tarea propia (T27).
+- El orden es de dependencia real: esqueleto ejecutable → primitivas sin dependencias →
+  dominio puro → modelos con migración → servicios → vistas y plantillas → E2E y documentación.
 
 ---
 
 ## Área A — Cimientos (sin dependencias)
 
-- [ ] **T1 — Redondeo comercial en guaraníes enteros**
+- [ ] **T1 — Esqueleto ejecutable del proyecto Django**
+  - **RF:** transversal (plan §1.12) — infraestructura, no comportamiento de negocio
+  - **Archivos:** `manage.py`, `src/__init__.py`, `src/config/__init__.py`,
+    `src/config/settings/__init__.py`, `src/config/settings/base.py`,
+    `src/config/settings/test.py`, `src/config/urls.py`, `src/config/wsgi.py`,
+    `src/config/asgi.py`, `src/shared/__init__.py`, `src/domain/__init__.py`,
+    `src/accounts/__init__.py`, `src/audit/__init__.py`, `src/cash/__init__.py`,
+    `src/sync/__init__.py`, `src/orders/__init__.py`, `src/notifications/__init__.py`,
+    `src/payments/__init__.py`, `src/inventory/__init__.py`
+  - **Hecho cuando:** `uv run python manage.py check` termina sin errores y
+    `uv run pytest --collect-only` recolecta `tests/unit/shared/test_money.py` sin romper con
+    `ModuleNotFoundError: No module named 'src'`. En concreto: `manage.py` es el estándar de
+    `django-admin startproject` apuntando a `src.config.settings`; `base.py` declara
+    `INSTALLED_APPS` con las apps de `django.contrib` necesarias (`admin`, `auth`,
+    `contenttypes`, `sessions`, `messages`, `staticfiles`) más las ocho apps propias de esta
+    spec (`accounts`, `audit`, `cash`, `sync`, `orders`, `notifications`, `payments`,
+    `inventory`) como **paquetes vacíos**: solo `__init__.py`, sin modelos, sin servicios y
+    sin `apps.py` — esos archivos son de T19, T24, T28, T36, T43, T51, T57 y T64 y esta tarea
+    no se adelanta a crearlos. `DATABASES` apunta a PostgreSQL por variables de entorno
+    coherentes con `docker-compose.yml` (sin credenciales inventadas ni hardcodeadas) y
+    `SECRET_KEY` sale del entorno; ambas se leen con `pydantic-settings` (AGENTS.md §6) y
+    `DEBUG=True` no queda en el archivo commiteado. `test.py` importa de `base.py` y ajusta
+    solo lo mínimo para que pytest-django arranque: el reloj fijo, el proveedor de correo en
+    memoria y Celery `task_always_eager=False` del plan §1.12 llegan en T20, y
+    `PROVEEDOR_CORREO` / `REMITENTE_COMPROBANTE` en T56; esta tarea no los escribe. `urls.py`
+    queda con `urlpatterns` vacío (o solo el admin): las rutas de caja las agrega T35.
+    `src/config/celery.py` **no** se crea acá: es de T32.
+    **Nota de alcance:** `catalog/`, `purchasing/`, `banking/` y `billing/` de
+    `ARCHITECTURE.md` §3 no se registran todavía en `INSTALLED_APPS` — ninguna tarea de esta
+    spec las crea y `billing` está declarada fuera del alcance inicial. Entran cuando su
+    propia spec las traiga.
+    **Nota de inserción:** esta tarea no estaba en el documento aprobado; se agregó el
+    2026-09-22 al arrancar la construcción (ver la nota de revisión del encabezado).
+
+- [ ] **T2 — Redondeo comercial en guaraníes enteros**
   - **RF:** RF-7, RF-11
   - **Archivos:** `src/shared/money.py`, `tests/unit/shared/test_money.py`
   - **Hecho cuando:** `pytest tests/unit/shared/test_money.py` pasa con
@@ -42,7 +87,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `13_250` → `13_500` (mitad hacia arriba), y monto negativo. Aserciones exactas, `approx`
     prohibido (plan §5.3).
 
-- [ ] **T2 — Cuadre de líneas contra el total redondeado**
+- [ ] **T3 — Cuadre de líneas contra el total redondeado**
   - **RF:** RF-15
   - **Archivos:** `src/shared/money.py`, `tests/unit/shared/test_money.py`
   - **Hecho cuando:** `pytest tests/unit/shared/test_money.py::test_lineas_suman_el_total_tras_redondeo`
@@ -50,7 +95,7 @@ Habilita el bucle de construcción, tarea por tarea.
     y N líneas con diferencia positiva y negativa; el ajuste cae en la última línea (ADR 0002)
     y nunca deja un total de línea negativo.
 
-- [ ] **T3 — Reloj inyectable**
+- [ ] **T4 — Reloj inyectable**
   - **RF:** RF-1, RF-33, RF-38
   - **Archivos:** `src/shared/clock.py`, `tests/unit/shared/test_clock.py`
   - **Hecho cuando:** `pytest tests/unit/shared/test_clock.py` pasa: `RelojFijo(instante).now()`
@@ -58,42 +103,42 @@ Habilita el bucle de construcción, tarea por tarea.
     `Protocol` `Clock` según `mypy --strict`, y un `RelojAvanzable` puede correr el tiempo sin
     tocar estado global.
 
-- [ ] **T4 — Resultado y jerarquía de errores de negocio**
+- [ ] **T5 — Resultado y jerarquía de errores de negocio**
   - **RF:** transversal (plan §1.2)
   - **Archivos:** `src/shared/result.py`, `src/shared/errors.py`
   - **Hecho cuando:** `make lint` y `make types` en verde con mypy estricto sobre `src/shared`:
     `Resultado[T]` es genérico y `ErrorDeNegocio` expone `codigo` y `mensaje`.
     `[NECESITA ACLARACIÓN]` — el plan no declara módulo de test para estos archivos (ver
     "Aclaraciones pendientes" #1); la verificación por test llega recién con los servicios que
-    los devuelven (T19 en adelante).
+    los devuelven (T20 en adelante).
 
-- [ ] **T5 — Generación de identificadores y claves de idempotencia**
+- [ ] **T6 — Generación de identificadores y claves de idempotencia**
   - **RF:** RF-16
   - **Archivos:** `src/shared/ids.py`
   - **Hecho cuando:** `make lint` y `make types` en verde; `UuidSecuencial` produce UUID
     determinísticos y `nueva_clave_idempotencia()` cabe en `CharField(max_length=64)`.
     `[NECESITA ACLARACIÓN]` — sin módulo de test declarado (#1); RF-16 queda cubierto de
-    verdad en T36 y T59.
+    verdad en T37 y T60.
 
-- [ ] **T6 — Catálogo de mensajes en español de Paraguay**
+- [ ] **T7 — Catálogo de mensajes en español de Paraguay**
   - **RF:** RF-2, RF-5, RF-9, RF-10, RF-21 (solo las cadenas; la lógica está en sus tareas)
   - **Archivos:** `src/shared/mensajes.py`
   - **Hecho cuando:** `make lint` y `make types` en verde y existe una constante por cada uno
     de los cinco mensajes (sesión ya abierta, caja cerrada, saldo pendiente, exceso no-efectivo,
     factura formal no disponible). Cada cadena se asierta literalmente en la tarea del RF que
-    la usa (T28, T57, T58, T10, T68).
+    la usa (T29, T58, T59, T11, T69).
     `[NECESITA ACLARACIÓN]` — sin módulo de test declarado (#1).
 
-- [ ] **T7 — Enumeraciones y errores del dominio**
+- [ ] **T8 — Enumeraciones y errores del dominio**
   - **RF:** RF-8, RF-26, RF-34
   - **Archivos:** `src/domain/enums.py`, `src/domain/errores.py`
   - **Hecho cuando:** `make types` en verde con mypy estricto sobre `src/domain`:
     `MedioPago` tiene los cinco medios de RF-8, `MotivoAnulacion` exactamente los tres motivos
     de la lista cerrada de RF-26, `NivelOperacion` N0..N4, y existen `SaldoInsuficiente`,
     `ExcesoNoEfectivo`, `ReferenciaRequerida`, `MotivoInvalido`, `AutorizacionRequerida`.
-    Los valores se asiertan en T10, T61 y T70.
+    Los valores se asiertan en T11, T62 y T71.
 
-- [ ] **T8 — Test de arquitectura: sin `Decimal`, sin Django ni reloj global en el núcleo**
+- [ ] **T9 — Test de arquitectura: sin `Decimal`, sin Django ni reloj global en el núcleo**
   - **RF:** RF-7 + invariantes del plan §5.1
   - **Archivos:** `tests/unit/test_arquitectura.py`
   - **Hecho cuando:** `pytest tests/unit/test_arquitectura.py` pasa sobre el árbol actual y
@@ -105,14 +150,14 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área B — Dominio puro del cobro
 
-- [ ] **T9 — Vuelto redondeado con ajuste explícito**
+- [ ] **T10 — Vuelto redondeado con ajuste explícito**
   - **RF:** RF-11
   - **Archivos:** `src/domain/vuelto.py`, `tests/unit/domain/test_vuelto.py`
   - **Hecho cuando:** `pytest tests/unit/domain/test_vuelto.py::test_vuelto_redondea_y_registra_ajuste`
     pasa con los tres ejemplos del plan §3.2 (`13_000`→ajuste 0, `13_300`→entregado `13_500`
     ajuste `+200`, `13_200`→entregado `13_000` ajuste `-200`) y excedente `<= 0` → `Vuelto(0,0,0)`.
 
-- [ ] **T10 — Validaciones previas del cobro: exceso no-efectivo y referencia obligatoria**
+- [ ] **T11 — Validaciones previas del cobro: exceso no-efectivo y referencia obligatoria**
   - **RF:** RF-10, RF-12
   - **Archivos:** `src/domain/cobro.py`, `tests/unit/domain/test_cobro.py`
   - **Hecho cuando:** `pytest tests/unit/domain/test_cobro.py::test_no_efectivo_mayor_al_total_rechaza`
@@ -120,48 +165,48 @@ Habilita el bucle de construcción, tarea por tarea.
     y `ReferenciaRequerida` cuando un medio electrónico llega con referencia vacía. Ningún efecto
     de borde: la función no escribe nada.
 
-- [ ] **T11 — Asignación de pago mixto y saldo pendiente**
+- [ ] **T12 — Asignación de pago mixto y saldo pendiente**
   - **RF:** RF-8, RF-9
   - **Archivos:** `src/domain/cobro.py`, `tests/unit/domain/test_cobro.py`
   - **Hecho cuando:** pasan `test_varios_pagos_por_venta` y
     `test_pago_parcial_deja_venta_abierta`: lo electrónico se aplica íntegro primero, el efectivo
     cubre el saldo, y el resultado es `ABIERTA` con `saldo_pendiente > 0` o `COBRADA` con saldo 0.
 
-- [ ] **T12 — Un solo vuelto por cobro, sobre el último pago en efectivo**
+- [ ] **T13 — Un solo vuelto por cobro, sobre el último pago en efectivo**
   - **RF:** RF-11 (decisión D10)
   - **Archivos:** `src/domain/cobro.py`, `tests/unit/domain/test_cobro.py`
   - **Hecho cuando:** un test de `test_cobro.py` verifica que con dos pagos en efectivo el
     vuelto y el ajuste quedan íntegros en el último aplicado, los demás en 0, y se cumple
     `recibido - monto == vuelto + ajuste` en esa fila.
 
-- [ ] **T13 — Recálculo de totales de la venta**
+- [ ] **T14 — Recálculo de totales de la venta**
   - **RF:** RF-15, RF-25
   - **Archivos:** `src/domain/venta.py`, `tests/unit/domain/test_venta.py`
   - **Hecho cuando:** `pytest tests/unit/domain/test_venta.py` pasa: `recalcular_totales`
     ignora las líneas `ANULADA`, redondea el total y ajusta la última línea vigente (ADR 0002),
     y la suma de las líneas vigentes es exactamente el total.
 
-- [ ] **T14 — Topes de descuento y veredicto de autorización**
+- [ ] **T15 — Topes de descuento y veredicto de autorización**
   - **RF:** RF-22, RF-23, RF-24
   - **Archivos:** `src/domain/descuentos.py`, `tests/unit/domain/test_descuentos.py`
   - **Hecho cuando:** pasan `test_tope_exacto_no_pide_pin`, el caso de uno menos, el de uno más
     (→ `REQUIERE_PIN`) y `test_autorizado_no_tiene_tope_adicional`
     (→ `ACEPTADO_POR_AUTORIZACION`). El tope efectivo usa `// 100`, sin `Decimal`.
 
-- [ ] **T15 — Disponible en efectivo: solo el efectivo suma**
+- [ ] **T16 — Disponible en efectivo: solo el efectivo suma**
   - **RF:** RF-13
   - **Archivos:** `src/domain/disponible.py`, `tests/unit/domain/test_arqueo.py`
   - **Hecho cuando:** `pytest tests/unit/domain/test_arqueo.py::test_solo_efectivo_suma_al_disponible`
     pasa: QR, débito, crédito y transferencia no mueven el disponible.
 
-- [ ] **T16 — Efectivo esperado y diferencia del arqueo**
+- [ ] **T17 — Efectivo esperado y diferencia del arqueo**
   - **RF:** RF-31, RF-32
   - **Archivos:** `src/domain/arqueo.py`, `tests/unit/domain/test_arqueo.py`
   - **Hecho cuando:** `pytest tests/unit/domain/test_arqueo.py` pasa con la fórmula del plan
     §3.7 (`fondo + efectivo + propinas_efectivo − vueltos − sangrías`) y
     `calcular_diferencia` da positivo con sobrante, negativo con faltante y 0 exacto.
 
-- [ ] **T17 — Sesión prolongada**
+- [ ] **T18 — Sesión prolongada**
   - **RF:** RF-33
   - **Archivos:** `src/domain/sesion.py`, `tests/unit/domain/test_sesion.py`
   - **Hecho cuando:** `pytest tests/unit/domain/test_sesion.py` pasa: falso a 7 h 59 min,
@@ -171,7 +216,7 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área C — Cuentas, roles y PIN
 
-- [ ] **T18 — Modelo `Usuario` con PIN y bloqueo por intentos**
+- [ ] **T19 — Modelo `Usuario` con PIN y bloqueo por intentos**
   - **RF:** RF-4
   - **Archivos:** `src/accounts/models.py`, `src/accounts/apps.py`,
     `src/accounts/migrations/0001_initial.py`, `src/config/settings/base.py` (`AUTH_USER_MODEL`)
@@ -181,7 +226,7 @@ Habilita el bucle de construcción, tarea por tarea.
     Los grupos `CAJERO`, `SUPERVISOR`, `ADMINISTRADOR`, `MOZO`, `SOPORTE` quedan como datos,
     no como constantes de código (ADR 0004).
 
-- [ ] **T19 — Chequeo de rol en capa de servicio**
+- [ ] **T20 — Chequeo de rol en capa de servicio**
   - **RF:** RF-3, RF-6, RF-25
   - **Archivos:** `src/accounts/services/permisos.py`, `tests/conftest.py`,
     `tests/factories/accounts.py`, `tests/integration/accounts/test_permisos.py`
@@ -190,7 +235,7 @@ Habilita el bucle de construcción, tarea por tarea.
     el grupo, con error de negocio en español. `tests/conftest.py` está declarado en el Área L
     del plan y se adelanta acá porque es el piso de todo test de integración.
 
-- [ ] **T20 — Verificación del PIN de supervisor y construcción de `Autorizacion`**
+- [ ] **T21 — Verificación del PIN de supervisor y construcción de `Autorizacion`**
   - **RF:** RF-23, RF-31
   - **Archivos:** `src/accounts/services/autorizacion.py`, `src/accounts/selectors.py`,
     `tests/integration/accounts/test_autorizacion.py`
@@ -199,7 +244,7 @@ Habilita el bucle de construcción, tarea por tarea.
     PIN incorrecto lanza `PinInvalido`; un usuario sin el grupo lanza `NoAutorizado`; y el
     selector nunca devuelve `pin_hash`. El instante viene del `clock` inyectado.
 
-- [ ] **T21 — Bloqueo por intentos fallidos y marca de autoautorizado**
+- [ ] **T22 — Bloqueo por intentos fallidos y marca de autoautorizado**
   - **RF:** RF-29
   - **Archivos:** `src/accounts/services/autorizacion.py`,
     `tests/integration/accounts/test_autorizacion.py`
@@ -208,7 +253,7 @@ Habilita el bucle de construcción, tarea por tarea.
     acierto resetea `pin_intentos_fallidos` a 0; y con `supervisor.id == actor.id` la
     `Autorizacion` devuelta trae `autoautorizado=True`.
 
-- [ ] **T22 — Alta de usuarios y carga de PIN desde el admin**
+- [ ] **T23 — Alta de usuarios y carga de PIN desde el admin**
   - **RF:** — (plan §1.4)
   - **Archivos:** `src/accounts/admin.py`
   - **Hecho cuando:** `make verify` en verde y `python manage.py check` sin avisos; el formulario
@@ -221,7 +266,7 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área D — Auditoría append-only
 
-- [ ] **T23 — Modelo `EventoAuditoria` inmutable**
+- [ ] **T24 — Modelo `EventoAuditoria` inmutable**
   - **RF:** RF-28
   - **Archivos:** `src/audit/models.py`, `src/audit/apps.py`,
     `src/audit/migrations/0001_initial.py`, `tests/integration/audit/test_inmutabilidad.py`
@@ -230,7 +275,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `delete()`, y el `CheckConstraint` `autoautorizado_exige_autorizador` produce
     `IntegrityError` al intentar `autoautorizado=True` sin autorizador.
 
-- [ ] **T24 — Única puerta de escritura del log**
+- [ ] **T25 — Única puerta de escritura del log**
   - **RF:** RF-28
   - **Archivos:** `src/audit/services/registro.py`, `tests/factories/audit.py`,
     `tests/integration/audit/test_registro.py`
@@ -238,14 +283,14 @@ Habilita el bucle de construcción, tarea por tarea.
     pasa: `registrar_evento` persiste tipo, actor, autorizador, motivo, `occurred_at`,
     `recorded_at` del `clock` inyectado, y un `payload` sin ningún dato de tarjeta.
 
-- [ ] **T25 — Marca y consulta de eventos autoautorizados**
+- [ ] **T26 — Marca y consulta de eventos autoautorizados**
   - **RF:** RF-29
   - **Archivos:** `src/audit/selectors.py`, `tests/integration/audit/test_registro.py`
   - **Hecho cuando:** pasa
     `test_registro.py::test_actor_igual_autorizador_marca_autoautorizado` y el selector por
     `autoautorizado=True` devuelve ese evento y no los demás.
 
-- [ ] **T26 — `REVOKE UPDATE, DELETE` sobre la tabla del log**
+- [ ] **T27 — `REVOKE UPDATE, DELETE` sobre la tabla del log**
   - **RF:** RF-28 (decisión D9)
   - **Archivos:** `src/audit/migrations/0002_revocar_permisos.py`,
     `tests/integration/audit/test_inmutabilidad.py`
@@ -258,7 +303,7 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área E — Sesión de caja y sangría
 
-- [ ] **T27 — Modelos `Terminal`, `SesionCaja` y `Sangria` con sus constraints**
+- [ ] **T28 — Modelos `Terminal`, `SesionCaja` y `Sangria` con sus constraints**
   - **RF:** RF-1, RF-2, RF-6
   - **Archivos:** `src/cash/models.py`, `src/cash/apps.py`,
     `src/cash/migrations/0001_initial.py`, `tests/integration/cash/test_sesion.py`
@@ -267,7 +312,7 @@ Habilita el bucle de construcción, tarea por tarea.
     servicio) y los casos de `fondo_no_negativo`, `cierre_consistente` y `sangria_positiva`.
     `make migrations-check` en verde.
 
-- [ ] **T28 — Apertura de sesión**
+- [ ] **T29 — Apertura de sesión**
   - **RF:** RF-1, RF-2
   - **Archivos:** `src/cash/services/sesion.py`, `tests/factories/cash.py`,
     `tests/integration/cash/test_sesion.py`
@@ -277,7 +322,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `test_segunda_apertura_rechazada_informa_sesion_vigente`, cuyo mensaje nombra la sesión
     abierta y desde cuándo, con la cadena de `shared/mensajes.py`.
 
-- [ ] **T29 — Sesión activa por terminal y guardia de caja abierta**
+- [ ] **T30 — Sesión activa por terminal y guardia de caja abierta**
   - **RF:** RF-3, RF-4, RF-5
   - **Archivos:** `src/cash/services/sesion.py`, `tests/integration/cash/test_sesion.py`
   - **Hecho cuando:** pasan `test_operaciones_se_registran_contra_sesion_abierta`,
@@ -285,7 +330,7 @@ Habilita el bucle de construcción, tarea por tarea.
     ni de estado) y el caso en que `exigir_sesion_abierta` sin sesión levanta `SinSesion` con
     el mensaje de "debe abrirse la caja".
 
-- [ ] **T30 — Sangría**
+- [ ] **T31 — Sangría**
   - **RF:** RF-6
   - **Archivos:** `src/cash/services/sangria.py`, `tests/integration/cash/test_sangria.py`
   - **Hecho cuando:** pasa
@@ -293,7 +338,7 @@ Habilita el bucle de construcción, tarea por tarea.
     disponible en efectivo, persiste motivo y actor, deja evento `SANGRIA` en el log, y corre
     bajo `atomic()` con `select_for_update()` sobre la sesión.
 
-- [ ] **T31 — Alerta de sesión prolongada (8 horas)**
+- [ ] **T32 — Alerta de sesión prolongada (8 horas)**
   - **RF:** RF-33
   - **Archivos:** `src/cash/tasks.py`, `src/config/celery.py`,
     `tests/integration/cash/test_alerta_sesion.py`
@@ -302,7 +347,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `alerta_prolongada_emitida=True` y una segunda corrida no duplica la alerta; un
     `occurred_at` adelantado del dispositivo no dispara nada.
 
-- [ ] **T32 — Pantalla de apertura de caja**
+- [ ] **T33 — Pantalla de apertura de caja**
   - **RF:** RF-1
   - **Archivos:** `src/cash/forms.py` (`AperturaForm`), `src/cash/views/sesion.py`,
     `src/cash/templates/cash/apertura.html`, `tests/integration/cash/test_sesion.py`
@@ -310,14 +355,14 @@ Habilita el bucle de construcción, tarea por tarea.
     la vista no contiene lógica de negocio (solo parsea y delega) y el formulario es operable
     por teclado (campo con `autofocus`, envío con Enter).
 
-- [ ] **T33 — Pantalla de sangría**
+- [ ] **T34 — Pantalla de sangría**
   - **RF:** RF-6
   - **Archivos:** `src/cash/forms.py` (`SangriaForm`), `src/cash/views/sesion.py`,
     `src/cash/templates/cash/sangria.html`, `tests/integration/cash/test_sangria.py`
   - **Hecho cuando:** un test postea monto y motivo, la sangría queda registrada, y un monto
     `<= 0` vuelve con error de formulario en español sin tocar la base.
 
-- [ ] **T34 — Panel de caja y rutas**
+- [ ] **T35 — Panel de caja y rutas**
   - **RF:** RF-3
   - **Archivos:** `src/cash/views/sesion.py`, `src/cash/templates/cash/panel.html`,
     `src/config/urls.py`, `tests/integration/cash/test_sesion.py`
@@ -328,7 +373,7 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área F — Idempotencia, cola offline y nivel de operación
 
-- [ ] **T35 — Modelos `RegistroIdempotencia` y `OperacionEncolada`**
+- [ ] **T36 — Modelos `RegistroIdempotencia` y `OperacionEncolada`**
   - **RF:** RF-16, RF-37
   - **Archivos:** `src/sync/models.py`, `src/sync/apps.py`,
     `src/sync/migrations/0001_initial.py`, `tests/integration/sync/test_idempotencia.py`
@@ -337,7 +382,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `["estado", "recorded_at", "id"]` existe en el SQL de la migración.
     `make migrations-check` en verde.
 
-- [ ] **T36 — `ejecutar_idempotente`**
+- [ ] **T37 — `ejecutar_idempotente`**
   - **RF:** RF-16
   - **Archivos:** `src/sync/services/idempotencia.py`, `tests/factories/sync.py`,
     `tests/integration/sync/test_idempotencia.py`
@@ -345,14 +390,14 @@ Habilita el bucle de construcción, tarea por tarea.
     invocaciones: el contador queda en 1 y la segunda llamada devuelve la respuesta serializada
     de la primera.
 
-- [ ] **T37 — Encolado y drenado de operaciones**
+- [ ] **T38 — Encolado y drenado de operaciones**
   - **RF:** RF-37
   - **Archivos:** `src/sync/services/cola.py`, `tests/integration/sync/test_cola.py`
   - **Hecho cuando:** pasa `test_cola.py::test_drena_en_orden_sin_duplicar`: las pendientes se
     aplican en orden `recorded_at, id`, quedan `APLICADA` con `aplicada_en` del `clock`, y un
     segundo drenado no vuelve a aplicarlas.
 
-- [ ] **T38 — El reloj del dispositivo no gobierna el orden**
+- [ ] **T39 — El reloj del dispositivo no gobierna el orden**
   - **RF:** RF-37 (decisión D11)
   - **Archivos:** `src/sync/services/cola.py`, `tests/integration/sync/test_cola.py`
   - **Hecho cuando:** pasa `test_cola.py::test_orden_ignora_reloj_del_dispositivo`: con una
@@ -360,7 +405,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `recorded_at`; y un error transitorio deja la operación `PENDIENTE` con `intentos+1`,
     mientras un error permanente la deja `FALLIDA` con evento en el log.
 
-- [ ] **T39 — Tarea Celery de drenado**
+- [ ] **T40 — Tarea Celery de drenado**
   - **RF:** RF-37
   - **Archivos:** `src/sync/tasks.py`, `src/config/celery.py`,
     `tests/integration/sync/test_cola.py`
@@ -368,14 +413,14 @@ Habilita el bucle de construcción, tarea por tarea.
     `task_always_eager=False`, plan §1.12) y verifica que aplica las pendientes y que el
     beat schedule declara la tarea.
 
-- [ ] **T40 — Nivel de operación N0..N2 a partir de sondas**
+- [ ] **T41 — Nivel de operación N0..N2 a partir de sondas**
   - **RF:** RF-34, RF-35, RF-36
   - **Archivos:** `src/sync/services/nivel.py`, `tests/unit/sync/test_nivel.py`
   - **Hecho cuando:** `pytest tests/unit/sync/test_nivel.py` pasa con `SondasFijas`:
     todo arriba → N0; sin internet → N1; sin LAN → N2; sin edge box → N3. Sin llamadas de red
     en el test.
 
-- [ ] **T41 — Nivel visible de forma permanente en la pantalla de caja**
+- [ ] **T42 — Nivel visible de forma permanente en la pantalla de caja**
   - **RF:** RF-34
   - **Archivos:** `src/sync/context_processors.py`,
     `src/cash/templates/cash/_nivel_operacion.html`, `src/config/settings/base.py`
@@ -390,7 +435,7 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área G — Venta, líneas, numeración, descuentos y anulación de ítem
 
-- [ ] **T42 — Modelos `Venta`, `LineaVenta` y `SecuenciaTerminal`**
+- [ ] **T43 — Modelos `Venta`, `LineaVenta` y `SecuenciaTerminal`**
   - **RF:** RF-15, RF-27, RF-38
   - **Archivos:** `src/orders/models.py`, `src/orders/apps.py`,
     `src/orders/migrations/0001_initial.py`, `tests/integration/orders/test_venta.py`
@@ -400,7 +445,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `cantidad_positiva`. `Venta.delete()` y `LineaVenta.delete()` lanzan.
     `make migrations-check` en verde.
 
-- [ ] **T43 — Numeración por terminal con candado**
+- [ ] **T44 — Numeración por terminal con candado**
   - **RF:** RF-38
   - **Archivos:** `src/orders/services/numeracion.py`, `tests/factories/orders.py`,
     `tests/integration/orders/test_numeracion.py`
@@ -408,21 +453,21 @@ Habilita el bucle de construcción, tarea por tarea.
     `establecimiento-punto-secuencia` (`001-001-0000431`) y dos llamadas concurrentes bajo
     `select_for_update()` no entregan el mismo número.
 
-- [ ] **T44 — Creación de venta con ambas marcas de tiempo**
+- [ ] **T45 — Creación de venta con ambas marcas de tiempo**
   - **RF:** RF-38
   - **Archivos:** `src/orders/services/venta.py`, `tests/integration/orders/test_venta.py`
   - **Hecho cuando:** pasa `test_venta.py::test_registra_ambas_marcas_de_tiempo`:
     `occurred_at` es el del dispositivo que llega por parámetro y `recorded_at` el del `clock`
     del servidor, y quedan distintos cuando el reloj del dispositivo está corrido.
 
-- [ ] **T45 — Líneas de venta y recálculo persistido**
+- [ ] **T46 — Líneas de venta y recálculo persistido**
   - **RF:** RF-15
   - **Archivos:** `src/orders/services/venta.py`, `tests/integration/orders/test_venta.py`
   - **Hecho cuando:** un test agrega tres líneas con snapshot (`producto_id`, `descripcion`,
     `precio_unitario_gs`) y verifica que la suma de `total_gs` de las líneas vigentes es igual a
     `Venta.total_gs` después del redondeo.
 
-- [ ] **T46 — Aplicación de descuento con y sin autorización**
+- [ ] **T47 — Aplicación de descuento con y sin autorización**
   - **RF:** RF-22, RF-23, RF-24
   - **Archivos:** `src/orders/services/descuento.py`,
     `tests/integration/orders/test_descuento.py`
@@ -431,7 +476,7 @@ Habilita el bucle de construcción, tarea por tarea.
     autorización; sobre el tope sin `Autorizacion` levanta `AutorizacionRequerida` y no persiste
     nada; con `Autorizacion` válida se aplica y deja evento `DESCUENTO_AUTORIZADO`.
 
-- [ ] **T47 — Anulación de ítem en venta abierta**
+- [ ] **T48 — Anulación de ítem en venta abierta**
   - **RF:** RF-25
   - **Archivos:** `src/orders/services/anulacion_item.py`,
     `tests/integration/orders/test_anulacion_item.py`
@@ -440,7 +485,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `ANULADA` con `anulada_por` y `anulada_en` (no se borra), se recalculan los totales, hay
     evento `ANULACION_ITEM`, y sobre una venta `COBRADA` la operación se rechaza.
 
-- [ ] **T48 — Pantalla de la venta abierta con saldo pendiente**
+- [ ] **T49 — Pantalla de la venta abierta con saldo pendiente**
   - **RF:** RF-9
   - **Archivos:** `src/orders/views/venta.py`,
     `src/orders/templates/orders/venta_abierta.html`,
@@ -448,7 +493,7 @@ Habilita el bucle de construcción, tarea por tarea.
   - **Hecho cuando:** un test con el cliente de Django ve las líneas vigentes, las anuladas
     marcadas como tales y el saldo pendiente con el mensaje de `shared/mensajes.py`.
 
-- [ ] **T49 — Diálogo de PIN para descuento sobre el tope**
+- [ ] **T50 — Diálogo de PIN para descuento sobre el tope**
   - **RF:** RF-23
   - **Archivos:** `src/orders/views/venta.py`,
     `src/orders/templates/orders/_descuento_pin.html`,
@@ -464,7 +509,7 @@ Habilita el bucle de construcción, tarea por tarea.
 > Se adelanta al Área H porque `payments/services/cobro.py` invoca `encolar_comprobante`
 > (plan §3.4). `notifications` no conoce `cash` ni `payments`: recibe un DTO y una dirección.
 
-- [ ] **T50 — Modelo `EnvioComprobante`**
+- [ ] **T51 — Modelo `EnvioComprobante`**
   - **RF:** RF-18, RF-20
   - **Archivos:** `src/notifications/models.py`, `src/notifications/apps.py`,
     `src/notifications/migrations/0001_initial.py`,
@@ -473,7 +518,7 @@ Habilita el bucle de construcción, tarea por tarea.
     el índice `["estado", "encolado_en"]` existe, y que `cuerpo_datos` no admite datos de tarjeta
     más allá de `ultimos_cuatro`. `make migrations-check` en verde.
 
-- [ ] **T51 — Puerto de correo y adaptador en memoria**
+- [ ] **T52 — Puerto de correo y adaptador en memoria**
   - **RF:** RF-18
   - **Archivos:** `src/notifications/providers/base.py`,
     `src/notifications/providers/memoria.py`,
@@ -482,7 +527,7 @@ Habilita el bucle de construcción, tarea por tarea.
     enviados y que `forzar_fallo(reintentable=True/False)` devuelve el `ResultadoEnvio`
     correspondiente. `mypy --strict` confirma que ningún tipo de AWS cruza `base.py`.
 
-- [ ] **T52 — Encolado del comprobante y email ausente o inválido**
+- [ ] **T53 — Encolado del comprobante y email ausente o inválido**
   - **RF:** RF-18, RF-19
   - **Archivos:** `src/notifications/services/comprobante.py`,
     `tests/factories/notifications.py`,
@@ -492,7 +537,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `encolar_comprobante` devuelve `None` sin crear fila; con email válido crea el
     `EnvioComprobante` en `PENDIENTE` con `clave_idempotencia = cmp-<venta_id>`.
 
-- [ ] **T53 — Despacho del comprobante y cuerpo del correo**
+- [ ] **T54 — Despacho del comprobante y cuerpo del correo**
   - **RF:** RF-18
   - **Archivos:** `src/notifications/services/comprobante.py`,
     `src/notifications/templates/notifications/comprobante.html`,
@@ -504,7 +549,7 @@ Habilita el bucle de construcción, tarea por tarea.
     explícita de "sin valor fiscal" (RF-21), y ningún dato de tarjeta; un envío ya `ENVIADO` es
     idempotente.
 
-- [ ] **T54 — Reintentos con backoff y red de seguridad**
+- [ ] **T55 — Reintentos con backoff y red de seguridad**
   - **RF:** RF-20
   - **Archivos:** `src/notifications/tasks.py`, `src/config/celery.py`,
     `tests/integration/notifications/test_reintentos.py`
@@ -514,7 +559,7 @@ Habilita el bucle de construcción, tarea por tarea.
     8 intentos; un fallo duro lo deja `FALLIDO` con evento `FALLA_ENVIO_COMPROBANTE`; y
     `reintentar_pendientes()` recoge los `PENDIENTE` viejos.
 
-- [ ] **T55 — Adaptadores SES y consola, y configuración del proveedor**
+- [ ] **T56 — Adaptadores SES y consola, y configuración del proveedor**
   - **RF:** RF-18
   - **Archivos:** `src/notifications/providers/ses.py`,
     `src/notifications/providers/consola.py`, `src/config/settings/base.py`
@@ -530,7 +575,7 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área H — Cobro, pagos, propina y puerto de stock
 
-- [ ] **T56 — Modelos `Pago` y `Propina` con sus constraints**
+- [ ] **T57 — Modelos `Pago` y `Propina` con sus constraints**
   - **RF:** RF-8, RF-12, RF-13
   - **Archivos:** `src/payments/models.py`, `src/payments/apps.py`,
     `src/payments/migrations/0001_initial.py`,
@@ -540,7 +585,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `sin_vuelto_en_electronico` y `pago_positivo` levantan `IntegrityError`; `Pago.delete()` y
     `Propina.delete()` lanzan. `make migrations-check` en verde.
 
-- [ ] **T57 — Orquestador del cobro: sesión, rol y creación de pagos**
+- [ ] **T58 — Orquestador del cobro: sesión, rol y creación de pagos**
   - **RF:** RF-5, RF-8
   - **Archivos:** `src/payments/services/cobro.py`, `tests/factories/payments.py`,
     `tests/integration/payments/test_cobro.py`
@@ -549,7 +594,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `atomic()` con `select_for_update()` sobre `SesionCaja`, y el rol se exige en el servicio,
     no en la vista.
 
-- [ ] **T58 — Estado de la venta, vuelto entregado y ajuste de redondeo persistidos**
+- [ ] **T59 — Estado de la venta, vuelto entregado y ajuste de redondeo persistidos**
   - **RF:** RF-9, RF-11
   - **Archivos:** `src/payments/services/cobro.py`,
     `tests/integration/payments/test_cobro.py`
@@ -558,7 +603,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `recibido - monto == vuelto + ajuste`) y `test_pago_parcial_deja_venta_abierta`
     (venta `ABIERTA` con el saldo informado).
 
-- [ ] **T59 — Cobro idempotente**
+- [ ] **T60 — Cobro idempotente**
   - **RF:** RF-16
   - **Archivos:** `src/payments/services/cobro.py`,
     `tests/integration/sync/test_idempotencia.py`
@@ -566,7 +611,7 @@ Habilita el bucle de construcción, tarea por tarea.
     recibida dos veces deja una sola `Venta` y un solo `Pago`, y la segunda llamada devuelve el
     `ResultadoCobro` de la primera.
 
-- [ ] **T60 — Cobro mixto de punta a punta**
+- [ ] **T61 — Cobro mixto de punta a punta**
   - **RF:** RF-8, RF-10
   - **Archivos:** `src/payments/services/cobro.py`,
     `tests/integration/payments/test_cobro_mixto.py`
@@ -575,7 +620,7 @@ Habilita el bucle de construcción, tarea por tarea.
     de no-efectivo mayor al total, que rechaza informando el exceso sin persistir nada.
     Se agrega `test_select_for_update_serializa_dos_cobros` (dos terminales sobre la misma venta).
 
-- [ ] **T61 — Operación sin internet: efectivo completo y electrónico declarado**
+- [ ] **T62 — Operación sin internet: efectivo completo y electrónico declarado**
   - **RF:** RF-35, RF-36
   - **Archivos:** `src/payments/services/cobro.py`,
     `tests/integration/payments/test_offline.py`
@@ -585,7 +630,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `test_electronico_declarado_queda_pendiente_de_conciliacion`
     (`Pago.estado == "DECLARADO_OFFLINE"` con su referencia).
 
-- [ ] **T62 — Propina fuera del total, atribuida al mozo**
+- [ ] **T63 — Propina fuera del total, atribuida al mozo**
   - **RF:** RF-14
   - **Archivos:** `src/payments/services/propina.py`,
     `tests/integration/payments/test_propina.py`
@@ -594,7 +639,7 @@ Habilita el bucle de construcción, tarea por tarea.
     cambia, la `Propina` guarda `mozo_id` y medio, y si el medio es efectivo entra al efectivo
     esperado del cierre.
 
-- [ ] **T63 — Puerto de stock no bloqueante**
+- [ ] **T64 — Puerto de stock no bloqueante**
   - **RF:** RF-39
   - **Archivos:** `src/inventory/services/stock.py`, `src/inventory/apps.py`,
     `src/payments/services/cobro.py`,
@@ -604,7 +649,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `StockQueExplota` inyectado, la venta queda `COBRADA` y persistida, y se registra un evento
     `ALERTA_STOCK_NEGATIVO` con el error en el payload. La llamada ocurre fuera del `atomic()`.
 
-- [ ] **T64 — Selectores de pagos para el cierre**
+- [ ] **T65 — Selectores de pagos para el cierre**
   - **RF:** RF-13, RF-32
   - **Archivos:** `src/payments/selectors.py`,
     `tests/integration/payments/test_cobro.py`
@@ -612,7 +657,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `total_ajuste_redondeo`, `total_propina_efectivo` y `pagos_por_medio` devuelven los montos
     de la sesión, y que solo el efectivo suma al disponible.
 
-- [ ] **T65 — Captura del correo al completar el cobro**
+- [ ] **T66 — Captura del correo al completar el cobro**
   - **RF:** RF-17, RF-19
   - **Archivos:** `src/payments/services/cobro.py`, `src/payments/forms.py`
     (`EmailComprobanteForm`),
@@ -624,7 +669,7 @@ Habilita el bucle de construcción, tarea por tarea.
     el envío con `transaction.on_commit`; sin correo el cobro se completa igual, sin envío y sin
     error.
 
-- [ ] **T66 — Pantalla de cobro operable por teclado**
+- [ ] **T67 — Pantalla de cobro operable por teclado**
   - **RF:** RF-8, RF-12
   - **Archivos:** `src/payments/forms.py` (`PagoForm`, `CobroForm`),
     `src/payments/views/cobro.py`, `src/payments/templates/payments/cobro.html`,
@@ -633,7 +678,7 @@ Habilita el bucle de construcción, tarea por tarea.
     venta queda `COBRADA`; un medio electrónico sin referencia vuelve con error de formulario en
     español; la pantalla se opera sin mouse (orden de tabulación explícito y `autofocus`).
 
-- [ ] **T67 — Detalle de pagos y vuelto en pantalla**
+- [ ] **T68 — Detalle de pagos y vuelto en pantalla**
   - **RF:** RF-11
   - **Archivos:** `src/payments/views/cobro.py`,
     `src/payments/templates/payments/_pago_linea.html`,
@@ -643,7 +688,7 @@ Habilita el bucle de construcción, tarea por tarea.
     y, cuando hay ajuste, el ajuste por separado; nunca se muestra el vuelto bruto como si fuera
     el entregado.
 
-- [ ] **T68 — Mensaje de factura formal no disponible**
+- [ ] **T69 — Mensaje de factura formal no disponible**
   - **RF:** RF-21
   - **Archivos:** `src/payments/messages.py`,
     `src/payments/templates/payments/_factura_no_disponible.html`,
@@ -656,7 +701,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `[NECESITA ACLARACIÓN]` — `tests/integration/payments/test_vistas_cobro.py` aparece en §5.4
     y §7 del plan pero no en la lista de archivos de §6 Área H (#3).
 
-- [ ] **T69 — Test de arquitectura: el cobro no puede bloquearse por un tercero**
+- [ ] **T70 — Test de arquitectura: el cobro no puede bloquearse por un tercero**
   - **RF:** RF-39 + invariantes del plan §5.1
   - **Archivos:** `tests/unit/test_arquitectura.py`
   - **Hecho cuando:** el test falla si aparece una llamada a `notifications`, `inventory` o
@@ -667,7 +712,7 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área I — Anulación de venta cobrada
 
-- [ ] **T70 — Anulación con PIN y motivo de lista cerrada**
+- [ ] **T71 — Anulación con PIN y motivo de lista cerrada**
   - **RF:** RF-26
   - **Archivos:** `src/payments/services/anulacion_venta.py`,
     `tests/integration/payments/test_anulacion.py`
@@ -676,7 +721,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `AutorizacionRequerida`; con un motivo fuera de `MotivoAnulacion` levanta `MotivoInvalido`;
     con los tres motivos válidos de RF-26 se acepta. Ninguna rama inválida persiste nada.
 
-- [ ] **T71 — La anulación es un evento nuevo, no una edición**
+- [ ] **T72 — La anulación es un evento nuevo, no una edición**
   - **RF:** RF-27
   - **Archivos:** `src/payments/services/anulacion_venta.py`,
     `tests/integration/payments/test_anulacion.py`
@@ -685,7 +730,7 @@ Habilita el bucle de construcción, tarea por tarea.
     quedan idénticos byte a byte) y `test_doble_anulacion_rechazada` (la segunda anulación de la
     misma venta se rechaza).
 
-- [ ] **T72 — Auditoría de la anulación**
+- [ ] **T73 — Auditoría de la anulación**
   - **RF:** RF-28, RF-29
   - **Archivos:** `src/payments/services/anulacion_venta.py`,
     `tests/integration/payments/test_anulacion.py`
@@ -693,7 +738,7 @@ Habilita el bucle de construcción, tarea por tarea.
     motivo, `objeto_tipo="Venta"`, `objeto_id` y payload con el total; y que cuando el cajero
     autoriza su propia anulación el evento queda con `autoautorizado=True`.
 
-- [ ] **T73 — Pantalla de anulación con PIN de supervisor**
+- [ ] **T74 — Pantalla de anulación con PIN de supervisor**
   - **RF:** RF-26
   - **Archivos:** `src/payments/views/anulacion.py`,
     `src/payments/templates/payments/anulacion.html`,
@@ -707,7 +752,7 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área K — Arqueo ciego y cierre
 
-- [ ] **T74 — Inicio del cierre sin exponer el esperado**
+- [ ] **T75 — Inicio del cierre sin exponer el esperado**
   - **RF:** RF-30
   - **Archivos:** `src/cash/services/arqueo.py`,
     `tests/integration/cash/test_conteo_ciego.py`
@@ -716,7 +761,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `sesion_id` y las denominaciones; el esperado, el total de ventas y el disponible no están
     en el objeto devuelto ni se calculan en esta llamada.
 
-- [ ] **T75 — Registro del conteo, diferencia y cierre con PIN**
+- [ ] **T76 — Registro del conteo, diferencia y cierre con PIN**
   - **RF:** RF-31
   - **Archivos:** `src/cash/services/arqueo.py`, `tests/integration/cash/test_arqueo.py`
   - **Hecho cuando:** pasa `test_arqueo.py::test_calcula_diferencia_y_exige_pin` más los tres
@@ -725,14 +770,14 @@ Habilita el bucle de construcción, tarea por tarea.
     `save()` del conteo), sin `Autorizacion` no se cierra, y el cierre deja
     `supervisor_cierre`, `cerrada_recorded_at` y evento `CIERRE_CAJA`.
 
-- [ ] **T76 — Resumen de cierre con los seis conceptos**
+- [ ] **T77 — Resumen de cierre con los seis conceptos**
   - **RF:** RF-32
   - **Archivos:** `src/cash/services/resumen.py`, `tests/integration/cash/test_resumen.py`
   - **Hecho cuando:** pasa `test_resumen.py::test_resumen_incluye_los_seis_conceptos`:
     fondo inicial, ventas por medio de pago, sangrías, efectivo esperado, efectivo contado y
     diferencia; el módulo consume `payments/selectors.py` y no importa `Pago`.
 
-- [ ] **T77 — Pantalla de conteo ciego**
+- [ ] **T78 — Pantalla de conteo ciego**
   - **RF:** RF-30
   - **Archivos:** `src/cash/forms.py` (`ConteoForm`), `src/cash/views/cierre.py`,
     `src/cash/templates/cash/conteo_ciego.html`,
@@ -741,7 +786,7 @@ Habilita el bucle de construcción, tarea por tarea.
     contienen el monto esperado ni el total de ventas (búsqueda literal sobre el cuerpo de la
     respuesta), y que el conteo se envía con el teclado.
 
-- [ ] **T78 — Pantalla de resumen de cierre**
+- [ ] **T79 — Pantalla de resumen de cierre**
   - **RF:** RF-32
   - **Archivos:** `src/cash/views/cierre.py`,
     `src/cash/templates/cash/resumen_cierre.html`,
@@ -753,21 +798,21 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área L — E2E, documentación y validación
 
-- [ ] **T79 — E2E del flujo de caja**
+- [ ] **T80 — E2E del flujo de caja**
   - **RF:** RF-1..RF-39 (humo)
   - **Archivos:** `tests/e2e/test_flujo_caja.py`, `tests/conftest.py`
   - **Hecho cuando:** `make e2e` pasa el escenario de "Criterios de finalización" de la spec:
     abrir caja, cobrar tres ventas (efectivo, mixta, electrónica), descuento sobre el tope con
     autorización, anulación de una venta cobrada, y cierre con conteo ciego y diferencia.
 
-- [ ] **T80 — E2E del modo degradado**
+- [ ] **T81 — E2E del modo degradado**
   - **RF:** RF-34, RF-35, RF-36, RF-37
   - **Archivos:** `tests/e2e/test_flujo_degradado.py`
   - **Hecho cuando:** `make e2e` pasa el segundo escenario: con las sondas en `internet=False`
     se cobra en efectivo y se declara un pago electrónico; al restablecer la conexión la cola
     drena y el conteo de ventas no cambia (ninguna duplicada).
 
-- [ ] **T81 — Arquitectura y privacidad al día**
+- [ ] **T82 — Arquitectura y privacidad al día**
   - **RF:** — (deuda declarada, plan §9)
   - **Archivos:** `docs/ARCHITECTURE.md`, `docs/PRIVACY.md`
   - **Hecho cuando:** `ARCHITECTURE.md` §3 lista `notifications/` con su razón de cambio (S3), y
@@ -775,14 +820,14 @@ Habilita el bucle de construcción, tarea por tarea.
     retención y base legal. La auditoría de privacidad del pipeline no reporta campo personal sin
     ficha.
 
-- [ ] **T82 — Despliegue del correo**
+- [ ] **T83 — Despliegue del correo**
   - **RF:** — (deuda declarada, plan §9)
   - **Archivos:** `docs/DEPLOYMENT.md`
   - **Hecho cuando:** el documento incluye dominio verificado, SPF/DKIM/DMARC y el estado del
     trámite de acceso de producción de SES, y `PROVEEDOR_CORREO=CONSOLA` queda documentado como
     el valor de desarrollo mientras SES esté en sandbox.
 
-- [ ] **T83 — Mapa de validación RF → test**
+- [ ] **T84 — Mapa de validación RF → test**
   - **RF:** RF-1..RF-39
   - **Archivos:** `specs/001-caja-y-cobros/validation.md`
   - **Hecho cuando:** los 39 RF tienen al menos un test nombrado y en verde, cada ruta de test
@@ -798,24 +843,24 @@ el arranque: todas caen en tareas tardías o de bajo riesgo.
 1. **Área A sin módulo de test para cuatro primitivas.** §6 Área A declara
    `tests/unit/shared/test_money.py`, `tests/unit/shared/test_clock.py` y
    `tests/unit/test_arquitectura.py`, pero no un módulo de test para `shared/result.py`,
-   `shared/errors.py`, `shared/ids.py` ni `shared/mensajes.py`. T4, T5 y T6 cierran contra G0/G1
+   `shared/errors.py`, `shared/ids.py` ni `shared/mensajes.py`. T5, T6 y T7 cierran contra G0/G1
    y quedan verificadas de verdad recién en las tareas que las consumen. *Pregunta:* ¿se agrega
    un módulo de test para estas primitivas, o se acepta la verificación indirecta?
 
 2. **`src/accounts/admin.py` sin RF ni test.** §1.4 y §6 Área C lo declaran, pero ningún RF ni
-   ninguna fila de §7 lo cubre. T22 cierra contra `make verify` y `manage.py check`.
+   ninguna fila de §7 lo cubre. T23 cierra contra `make verify` y `manage.py check`.
    *Pregunta:* ¿alcanza, o el alta de PIN merece su propio test de integración?
 
 3. **Tres rutas nombradas fuera de §6.** El plan dice que el bucle abre *solo* los archivos del
    Área en §6, pero estas tres aparecen únicamente en otras secciones:
-   `tests/integration/payments/test_vistas_cobro.py` (§5.4, §7 — RF-21, usada en T68),
-   `tests/integration/cash/test_nivel_visible.py` (§7 — RF-34, usada en T41) y
-   `src/config/settings/test.py` (§1.12 — reloj fijo, proveedor en memoria; se abre en T19 junto
+   `tests/integration/payments/test_vistas_cobro.py` (§5.4, §7 — RF-21, usada en T69),
+   `tests/integration/cash/test_nivel_visible.py` (§7 — RF-34, usada en T42) y
+   `src/config/settings/test.py` (§1.12 — reloj fijo, proveedor en memoria; se abre en T20 junto
    con `tests/conftest.py`). *Pregunta:* ¿se incorporan a §6 en las Áreas H, F y C
    respectivamente, o van a otra parte?
 
 **Nota de orden (no es una aclaración):** `tests/conftest.py` está declarado en el Área L del
-plan, pero es el piso de todo test de integración; se adelanta a T19. No se inventa ninguna ruta:
+plan, pero es el piso de todo test de integración; se adelanta a T20. No se inventa ninguna ruta:
 el archivo ya está declarado.
 
 ---
@@ -824,45 +869,45 @@ el archivo ya está declarado.
 
 | RF | Tareas |
 |---|---|
-| RF-1 | T3, T18 (modelo), T27, T28, T32 |
-| RF-2 | T6, T27, T28 |
-| RF-3 | T19, T29, T34 |
-| RF-4 | T18, T29 |
-| RF-5 | T6, T29, T57 |
-| RF-6 | T19, T27, T30, T33 |
-| RF-7 | T1, T8 |
-| RF-8 | T7, T11, T56, T57, T60, T66 |
-| RF-9 | T6, T11, T48, T58 |
-| RF-10 | T6, T10, T60 |
-| RF-11 | T1, T9, T12, T58, T67 |
-| RF-12 | T10, T56, T66 |
-| RF-13 | T15, T56, T64 |
-| RF-14 | T62 |
-| RF-15 | T2, T13, T42, T45 |
-| RF-16 | T5, T35, T36, T59 |
-| RF-17 | T65 |
-| RF-18 | T50, T51, T52, T53, T55 |
-| RF-19 | T52, T65 |
-| RF-20 | T50, T54 |
-| RF-21 | T6, T53, T68 |
-| RF-22 | T14, T46 |
-| RF-23 | T14, T20, T46, T49 |
-| RF-24 | T14, T46 |
-| RF-25 | T13, T19, T47 |
-| RF-26 | T7, T70, T73 |
-| RF-27 | T42, T71 |
-| RF-28 | T23, T24, T26, T72 |
-| RF-29 | T21, T25, T72 |
-| RF-30 | T74, T77 |
-| RF-31 | T16, T20, T75 |
-| RF-32 | T16, T64, T76, T78 |
-| RF-33 | T3, T17, T31 |
-| RF-34 | T7, T40, T41 |
-| RF-35 | T40, T61 |
-| RF-36 | T40, T61 |
-| RF-37 | T35, T37, T38, T39, T80 |
-| RF-38 | T3, T42, T43, T44 |
-| RF-39 | T63, T69 |
+| RF-1 | T4, T19 (modelo), T28, T29, T33 |
+| RF-2 | T7, T28, T29 |
+| RF-3 | T20, T30, T35 |
+| RF-4 | T19, T30 |
+| RF-5 | T7, T30, T58 |
+| RF-6 | T20, T28, T31, T34 |
+| RF-7 | T2, T9 |
+| RF-8 | T8, T12, T57, T58, T61, T67 |
+| RF-9 | T7, T12, T49, T59 |
+| RF-10 | T7, T11, T61 |
+| RF-11 | T2, T10, T13, T59, T68 |
+| RF-12 | T11, T57, T67 |
+| RF-13 | T16, T57, T65 |
+| RF-14 | T63 |
+| RF-15 | T3, T14, T43, T46 |
+| RF-16 | T6, T36, T37, T60 |
+| RF-17 | T66 |
+| RF-18 | T51, T52, T53, T54, T56 |
+| RF-19 | T53, T66 |
+| RF-20 | T51, T55 |
+| RF-21 | T7, T54, T69 |
+| RF-22 | T15, T47 |
+| RF-23 | T15, T21, T47, T50 |
+| RF-24 | T15, T47 |
+| RF-25 | T14, T20, T48 |
+| RF-26 | T8, T71, T74 |
+| RF-27 | T43, T72 |
+| RF-28 | T24, T25, T27, T73 |
+| RF-29 | T22, T26, T73 |
+| RF-30 | T75, T78 |
+| RF-31 | T17, T21, T76 |
+| RF-32 | T17, T65, T77, T79 |
+| RF-33 | T4, T18, T32 |
+| RF-34 | T8, T41, T42 |
+| RF-35 | T41, T62 |
+| RF-36 | T41, T62 |
+| RF-37 | T36, T38, T39, T40, T81 |
+| RF-38 | T4, T43, T44, T45 |
+| RF-39 | T64, T70 |
 
 **39/39 RF con al menos una tarea y un test nombrado.**
 
@@ -870,4 +915,4 @@ el archivo ya está declarado.
 
 **Pendiente de aprobación explícita de Rolando.** Confirmar en particular las tres aclaraciones
 de arriba y el criterio de que modelo + `0001_initial` van en la misma tarea (por G4). Aprobado
-esto, habilita el bucle de construcción desde T1.
+esto, habilita el bucle de construcción desde T2.
