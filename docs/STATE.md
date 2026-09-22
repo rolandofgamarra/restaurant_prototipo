@@ -14,29 +14,30 @@
 ## Hecho
 
 - Constitución, ADR 0001-0004 aceptados. Spec 001 aprobada, 39 RF (RF-17..RF-21:
-  comprobante por correo; SIFEN queda para spec futura, requiere leer
-  `docs/dumentacion_SIFEN/` antes de escribirse). `stack.md` aprobado (email vía SES,
-  interfaz propia). `plan.md` aprobado (apps `cash/orders/payments/accounts/audit/sync/
-  notifications`, supuestos S1-S3 confirmados). `tasks.md` aprobado, 84 tareas.
-- **T1 hecha** (esqueleto Django). Entorno: `uv` en `~/.local/bin`, Docker Desktop +
-  `docker compose up -d`, `.env` local desde `.env.example` (gitignorado,
-  `DJANGO_LAN_SIN_TLS=True`). `DATABASE_URL` obligatoria (falla fuerte sin `.env`). G5
-  fuerza `DJANGO_DEBUG=False DJANGO_LAN_SIN_TLS=False` en el `Makefile`. `ruff` excluye
-  `specs|docs|prompts/**/*.md`. Plugin `pydantic.mypy` habilitado. `make` no existe en
-  esta shell git-bash — usar `uv run ...` directo.
-- **T2 hecha** (`redondear_gs`). `src/shared/money.py`, 8 tests, 100% cobertura.
+  comprobante por correo; SIFEN queda para spec futura). `stack.md` aprobado (email vía
+  SES, interfaz propia). `plan.md` aprobado (apps `cash/orders/payments/accounts/audit/
+  sync/notifications`, supuestos S1-S3 confirmados). `tasks.md` aprobado, 84 tareas.
+- `docs/documentacion_SIFEN/` **leída completa**, guardada en memoria persistente del
+  proyecto ("SIFEN — Manual Técnico", "SIFEN — próximo paso"). No alcanza para escribir
+  la spec: 5 vacíos bloqueantes (contingencia no definida en v150 es el más grave) y
+  "numeración por terminal" no respaldada por el MT (unidad fiscal = punto de expedición
+  autorizado por SGTM, no la terminal). Ver "Deuda conocida" y la memoria para el detalle.
+- **T1 hecha** (esqueleto Django). Entorno: `uv`+Docker Desktop+`docker compose up -d`,
+  `.env` local (gitignorado, `DJANGO_LAN_SIN_TLS=True`). `DATABASE_URL` obligatoria. G5
+  fuerza `DJANGO_DEBUG=False DJANGO_LAN_SIN_TLS=False`. `ruff` excluye
+  `specs|docs|prompts/**/*.md`. `make` no existe en esta shell git-bash — `uv run ...`.
+- **T2 hecha** (`redondear_gs`, `shared/money.py`, 8 tests, 100% cobertura).
 - **T5 hecha, adelantada fuera de orden.** `ErrorDeNegocio(Exception)` con
-  código+mensaje, coexiste con `Resultado[T]` (`Ok`/`Error`, PEP 695). Corrigió una
-  contradicción real en `plan.md` §1.2 vs §3.3/§3.4 sobre si se lanzan excepciones.
-- **T3 hecha** (`cuadrar_lineas`, RF-15). Ajuste en última línea; `ErrorDeNegocio` si
-  quedaría negativa o si hay total sin líneas. 17 tests, 100% cobertura sobre `shared/`.
+  código+mensaje, coexiste con `Resultado[T]` (`Ok`/`Error`, PEP 695).
+- **T3 hecha** (`cuadrar_lineas`, RF-15, 17 tests, 100% cobertura sobre `shared/`).
 
 ## Siguiente
 
 1. T4 — reloj inyectable (`shared/clock.py`, RF-1/RF-33/RF-38).
 2. Continuar el bucle T6, T7, ... (T5 ya hecha; ver `tasks.md`).
-3. Cuando el negocio esté listo: redactar spec dedicada de facturación SIFEN, leyendo
-   `docs/dumentacion_SIFEN/` primero — nunca inventar detalles de SIFEN (no-negociable).
+3. Facturación SIFEN: antes de redactar esa spec, conseguir lo que falta (ver memoria
+   "SIFEN — próximo paso": PDF del dígito verificador, Notas Técnicas posteriores a
+   v150, XSD oficiales, guía de habilitación) — nunca inventar detalles (no-negociable).
 
 ## Decisiones vigentes (resumen — el detalle está en los ADR)
 
@@ -51,8 +52,8 @@
 
 ## Deuda conocida
 
-- `docs/DEPLOYMENT.md` esqueleto (handoff). Bancard sin documentación; SIFEN sí tiene
-  (`docs/dumentacion_SIFEN/`) pero no leída — no escribir código de esas integraciones.
+- `docs/DEPLOYMENT.md` esqueleto (handoff). Bancard sin documentación — no escribir
+  código de esa integración. SIFEN: documentación leída pero incompleta (ver "Hecho").
 - Spec 001 captura email del cliente (RF-17/18): PII nueva, `docs/PRIVACY.md` necesita
   actualizarse en `/sdd-audit-privacy` antes de cerrar la spec.
 - Doble anulación, dos terminales sobre la misma mesa, redondeo de descuentos
