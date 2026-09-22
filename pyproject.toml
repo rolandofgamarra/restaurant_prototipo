@@ -36,6 +36,10 @@ target-version = "py312"
 line-length = 100
 src = ["src", "tests"]
 exclude = ["*/migrations/*"]
+# ruff format también reformatea bloques ```python dentro de Markdown. specs/, docs/ y
+# prompts/ tienen pseudocódigo de diseño (no ejecutable, no sigue el estilo de ruff a
+# propósito) — se excluyen del scope de lint/format para que el gate no rompa por eso.
+extend-exclude = ["specs/**/*.md", "docs/**/*.md", "prompts/**/*.md"]
 
 [tool.ruff.lint]
 select = [
