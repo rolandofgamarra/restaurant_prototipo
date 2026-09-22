@@ -1,0 +1,114 @@
+[project]
+name = "restaurant"
+version = "0.1.0"
+description = "Sistema de gestion para restaurantes — POS, caja, comandas e inventario"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.1",
+    "psycopg[binary]>=3.2",
+    "pydantic-settings>=2.6",
+    "django-htmx>=1.19",
+    "structlog>=24.4",
+    "celery>=5.4",
+    "redis>=5.2",
+    "whitenoise>=6.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+    "pytest-cov>=6.0",
+    "factory-boy>=3.3",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "django-stubs[compatible-mypy]>=5.1",
+    "bandit>=1.8",
+    "pip-audit>=2.7",
+    "pre-commit>=4.0",
+    "django-extensions>=3.2",
+]
+
+# ------------------------------------------------------------------ ruff ----
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",      # pycodestyle / pyflakes
+    "I",                # isort
+    "UP",               # pyupgrade
+    "B",                # bugbear
+    "S",                # bandit
+    "DJ",               # flake8-django
+    "SIM",              # simplify
+    "TID",              # tidy-imports — habilita la prohibicion de Decimal en dinero
+    "RUF",
+    "N",                # naming
+    "T20",              # no print
+    "ERA",              # no commented-out code
+]
+ignore = [
+    "S101",  # assert — necesario en tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "N802"]
+"*/settings/*" = ["F403", "F405"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"decimal.Decimal".msg = "Prohibido para dinero. El guarani es entero: usar int y shared.money."
+
+# ------------------------------------------------------------------ mypy ----
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+no_implicit_optional = true
+check_untyped_defs = true
+exclude = ["migrations/"]
+
+# El dominio y shared son puros: tipado estricto sin excusas.
+[[tool.mypy.overrides]]
+module = ["src.domain.*", "src.shared.*"]
+disallow_untyped_defs = true
+disallow_any_generics = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = ["*.migrations.*"]
+ignore_errors = true
+
+[tool.django-stubs]
+django_settings_module = "src.config.settings.test"
+
+# ---------------------------------------------------------------- pytest ----
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "src.config.settings.test"
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+addopts = "-q --strict-markers --strict-config"
+markers = [
+    "integration: requiere PostgreSQL real",
+    "e2e: humo del flujo completo, solo antes de release",
+]
+
+[tool.coverage.run]
+branch = true
+omit = ["*/migrations/*", "*/settings/*", "*/tests/*", "manage.py"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]
+
+# ---------------------------------------------------------------- bandit ----
+
+[tool.bandit]
+exclude_dirs = ["tests", "*/migrations"]

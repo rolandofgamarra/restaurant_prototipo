@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: Compuertas G0-G5
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: restaurant
+          POSTGRES_USER: restaurant
+          POSTGRES_PASSWORD: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U restaurant"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+
+    env:
+      DATABASE_URL: postgres://restaurant:ci@localhost:5432/restaurant
+      REDIS_URL: redis://localhost:6379/0
+      DJANGO_SECRET_KEY: ci-only-not-a-real-secret
+      DJANGO_DEBUG: "False"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - run: uv sync --all-extras
+
+      # Cada compuerta es un paso propio: cuando CI falla, el nombre del paso
+      # ya dice que compuerta se rompio, sin leer el log.
+      - name: G0 formato y linting
+        run: uv run ruff format --check . && uv run ruff check .
+
+      - name: G1 tipos
+        run: uv run mypy src tests
+
+      - name: G2 unitarios y cobertura
+        run: uv run pytest -m "not integration and not e2e" --cov=src/domain --cov=src/shared --cov-fail-under=85
+
+      - name: G3 integracion
+        run: uv run pytest -m integration
+
+      - name: G4 migraciones
+        run: uv run python manage.py makemigrations --check --dry-run
+
+      - name: G5 seguridad
+        run: |
+          uv run bandit -q -r src -c pyproject.toml
+          uv run pip-audit --strict
+          uv run python manage.py check --deploy --fail-level WARNING
