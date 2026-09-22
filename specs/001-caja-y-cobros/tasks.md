@@ -78,7 +78,7 @@ Habilita el bucle de construcción, tarea por tarea.
     **Nota de inserción:** esta tarea no estaba en el documento aprobado; se agregó el
     2026-09-22 al arrancar la construcción (ver la nota de revisión del encabezado).
 
-- [ ] **T2 — Redondeo comercial en guaraníes enteros**
+- [x] **T2 — Redondeo comercial en guaraníes enteros**
   - **RF:** RF-7, RF-11
   - **Archivos:** `src/shared/money.py`, `tests/unit/shared/test_money.py`
   - **Hecho cuando:** `pytest tests/unit/shared/test_money.py` pasa con
