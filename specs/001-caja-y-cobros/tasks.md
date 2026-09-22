@@ -87,7 +87,7 @@ Habilita el bucle de construcción, tarea por tarea.
     `13_250` → `13_500` (mitad hacia arriba), y monto negativo. Aserciones exactas, `approx`
     prohibido (plan §5.3).
 
-- [ ] **T3 — Cuadre de líneas contra el total redondeado**
+- [x] **T3 — Cuadre de líneas contra el total redondeado**
   - **RF:** RF-15
   - **Archivos:** `src/shared/money.py`, `tests/unit/shared/test_money.py`
   - **Hecho cuando:** `pytest tests/unit/shared/test_money.py::test_lineas_suman_el_total_tras_redondeo`
