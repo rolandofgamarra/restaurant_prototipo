@@ -58,7 +58,12 @@ migrations-check: ## G4 — no faltan migraciones
 security: ## G5 — analisis estatico, dependencias y chequeo de despliegue
 	$(PY) bandit -q -r src -c pyproject.toml
 	$(PY) pip-audit --strict
-	$(MANAGE) check --deploy --fail-level WARNING
+	# check --deploy valida la linea base de produccion, no el .env local del
+	# desarrollador (que suele tener DEBUG=True para runserver). Se fuerza
+	# explicitamente DEBUG=False y sin la relajacion de TLS de LAN, sin tocar
+	# el .env real ni el resto de las variables (SECRET_KEY, DATABASE_URL, etc.
+	# se siguen leyendo del entorno normal).
+	DJANGO_DEBUG=False DJANGO_LAN_SIN_TLS=False $(MANAGE) check --deploy --fail-level WARNING
 
 e2e: ## G6 — humo del flujo de caja (solo antes de release)
 	$(PY) pytest -m e2e

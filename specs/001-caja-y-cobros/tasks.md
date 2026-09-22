@@ -44,7 +44,7 @@ Habilita el bucle de construcción, tarea por tarea.
 
 ## Área A — Cimientos (sin dependencias)
 
-- [ ] **T1 — Esqueleto ejecutable del proyecto Django**
+- [x] **T1 — Esqueleto ejecutable del proyecto Django**
   - **RF:** transversal (plan §1.12) — infraestructura, no comportamiento de negocio
   - **Archivos:** `manage.py`, `src/__init__.py`, `src/config/__init__.py`,
     `src/config/settings/__init__.py`, `src/config/settings/base.py`,
